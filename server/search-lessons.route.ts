@@ -14,8 +14,8 @@ export function searchLessons(req: Request, res: Response) {
     const courseId = queryParams.courseId,
           filter = queryParams.filter || '',
           sortOrder = queryParams.sortOrder,
-          pageNumber = parseInt(queryParams.pageNumber) || 0,
-          pageSize = parseInt(queryParams.pageSize);
+          pageNumber = parseInt(queryParams.pageNumber, 0) || 0,
+          pageSize = parseInt(queryParams.pageSize, 0);
 
     let lessons = Object.values(LESSONS).filter(lesson => lesson.courseId == courseId).sort((l1, l2) => l1.id - l2.id);
 
@@ -34,6 +34,5 @@ export function searchLessons(req: Request, res: Response) {
     setTimeout(() => {
         res.status(200).json({payload: lessonsPage});
     },1000);
-
 
 }
