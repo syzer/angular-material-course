@@ -1,80 +1,80 @@
-import {AfterViewInit, Component, ElementRef, OnInit, ViewChild} from '@angular/core';
-import {ActivatedRoute} from "@angular/router";
-import { MatPaginator } from "@angular/material/paginator";
-import { MatSort } from "@angular/material/sort";
-import { MatTableDataSource } from "@angular/material/table";
-import {Course} from "../model/course";
-import {CoursesService} from "../services/courses.service";
-import {debounceTime, distinctUntilChanged, startWith, tap, delay} from 'rxjs/operators';
-import {merge, fromEvent} from "rxjs";
-import {LessonsDataSource} from "../services/lessons.datasource";
+import {AfterViewInit, Component, ElementRef, OnInit, ViewChild} from '@angular/core'
+import {ActivatedRoute} from '@angular/router'
+import {MatPaginator} from '@angular/material/paginator'
+import {MatSort} from '@angular/material/sort'
+import {MatTableDataSource} from '@angular/material/table'
+import {Course} from '../model/course'
+import {JournalService} from '../services/journal.service'
+import {debounceTime, distinctUntilChanged, startWith, tap, delay} from 'rxjs/operators'
+import {merge, fromEvent} from 'rxjs'
+import {JournalDataSource} from '../services/journal.datasource'
 
 
 @Component({
-    selector: 'course',
-    templateUrl: './course.component.html',
-    styleUrls: ['./course.component.css']
+  selector: 'course',
+  templateUrl: './course.component.html',
+  styleUrls: ['./course.component.css']
 })
 export class CourseComponent implements OnInit, AfterViewInit {
+  course: Course
+  dataSource: JournalDataSource
+  displayedColumns = ['seqNo', 'description', 'duration']
 
-    course:Course;
+  @ViewChild(MatPaginator, {static: false}) paginator: MatPaginator
+  @ViewChild(MatSort, {static: false}) sort: MatSort
+  @ViewChild('input', {static: false}) input: ElementRef
 
-    dataSource: LessonsDataSource;
+  constructor(private route: ActivatedRoute,
+              private journalService: JournalService) {
+  }
 
-    displayedColumns= ["seqNo", "description", "duration"];
+  ngOnInit() {
+    this.course = this.route.snapshot.data['course']
+    this.dataSource = new JournalDataSource(this.journalService)
+    this.dataSource.loadJournals(this.course.id, '', 'asc',  0, 3,  'seqNo')
+  }
 
-    @ViewChild(MatPaginator, { static: false }) paginator: MatPaginator;
+  ngAfterViewInit() {
+    this.sort.sortChange.subscribe(() =>
+      this.paginator.pageIndex = 0)
 
-    @ViewChild(MatSort, { static: false }) sort: MatSort;
+    fromEvent(this.input.nativeElement, 'keyup')
+      .pipe(
+        debounceTime(150),
+        distinctUntilChanged(),
+        tap(() => {
+          this.paginator.pageIndex = 0
 
-    @ViewChild('input', { static: false }) input: ElementRef;
+          this.loadJournalPage()
+        })
+      )
+      .subscribe()
 
-    constructor(private route: ActivatedRoute,
-                private coursesService: CoursesService) {
+    merge(this.sort.sortChange, this.paginator.page)
+      .pipe(
+        tap(console.warn),
+        tap(() => this.loadJournalPage())
+      )
+      .subscribe()
 
-    }
+    // setTimeout(() => {
+    //   // this.paginator
+    //   // TODO figure out if to put in page
+    //   this.course.lessonsCount += 1
+    // }, 2000)
+  }
 
-    ngOnInit() {
-
-        this.course = this.route.snapshot.data["course"];
-
-        this.dataSource = new LessonsDataSource(this.coursesService);
-
-        this.dataSource.loadLessons(this.course.id, '', 'asc', 0, 3);
-    }
-
-    ngAfterViewInit() {
-
-        this.sort.sortChange.subscribe(() => this.paginator.pageIndex = 0);
-
-        fromEvent(this.input.nativeElement,'keyup')
-            .pipe(
-                debounceTime(150),
-                distinctUntilChanged(),
-                tap(() => {
-                    this.paginator.pageIndex = 0;
-
-                    this.loadLessonsPage();
-                })
-            )
-            .subscribe();
-
-        merge(this.sort.sortChange, this.paginator.page)
-        .pipe(
-            tap(() => this.loadLessonsPage())
-        )
-        .subscribe();
-
-    }
-
-    loadLessonsPage() {
-        this.dataSource.loadLessons(
-            this.course.id,
-            this.input.nativeElement.value,
-            this.sort.direction,
-            this.paginator.pageIndex,
-            this.paginator.pageSize);
-    }
+  loadJournalPage() {
+    this.dataSource.loadJournals(
+      this.course.id,
+      this.input.nativeElement.value,
+      this.sort.direction,
+      this.paginator.pageIndex,
+      this.paginator.pageSize,
+      this.sort.active,
+      // this.paginator
+    )
+  }
 
 
 }
